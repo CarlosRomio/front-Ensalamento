@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/auth/login"; // Ajuste conforme seu backend
+const API_URL = "http://10.1.189.116:8080"; // Ajuste conforme seu backend
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -11,7 +11,7 @@ export default function Login({ onLoginSuccess }) {
   const fazerLogin = async () => {
     try {
       const response = await axios.post(
-        API_URL,
+        API_URL + ("/auth/login"),
         JSON.stringify({ email, password }), // Convertendo para JSON
         { headers: { "Content-Type": "application/json" } } // Garantindo o cabeçalho correto
       );

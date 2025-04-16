@@ -1,24 +1,30 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const API_URL = "http://10.1.189.116:8080"; // Ajuste conforme seu backend
+const API_URL = "http://localhost:8080"; // Altere conforme necessário
 
-export default function Login({ onLoginSuccess }) {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [erro, setErro] = useState("");
+  const navigate = useNavigate();
 
   const fazerLogin = async () => {
     try {
       const response = await axios.post(
-        API_URL + ("/auth/login"),
-        JSON.stringify({ email, password }), // Convertendo para JSON
-        { headers: { "Content-Type": "application/json" } } // Garantindo o cabeçalho correto
+        `${API_URL}/auth/login`,
+        JSON.stringify({ email, password }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       const token = response.data.token;
-      localStorage.setItem("token", token); // Armazena o token
-      onLoginSuccess(); // Chama a função para redirecionar após o login
+      localStorage.setItem("token", token); // Salva o token no localStorage
+      navigate("/salas"); // Redireciona para a tela de salas
     } catch (error) {
       setErro("Credenciais inválidas. Tente novamente.");
     }

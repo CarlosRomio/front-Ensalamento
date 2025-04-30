@@ -7,8 +7,9 @@ const API_URL = "http://localhost:8080";
 export default function Salas() {
   const [salas, setSalas] = useState([]);
   const [novaSala, setNovaSala] = useState("");
-  const [capacidade, setCapacidade] = useState("");
+  const [novaCapacidade, setNovaCapacidade] = useState("");
   const [logado, setLogado] = useState(false);
+  const [editandoSala, setEditandoSala] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -30,25 +31,59 @@ export default function Salas() {
     }
   };
 
-  const adicionarSala = async () => {
-    if (!novaSala || capacidade === "") return;
+  const adicionarOuEditarSala = async () => {
+    const token = localStorage.getItem("token");
+    if (!novaSala) return;
+
+    const payload = {
+      nome: novaSala,
+      capacidade: parseInt(novaCapacidade) || 0,
+    };
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_URL}/sala/create`,
-        {
-          nome: novaSala,
-          capacidade: parseInt(capacidade), // garante que seja número
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      if (editandoSala) {
+        // Editando sala existente
+        await axios.put(`${API_URL}/sala/${editandoSala.id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        // Criando nova sala
+        await axios.post(`${API_URL}/sala/create`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
       setNovaSala("");
-      setCapacidade("");
+      setNovaCapacidade("");
+      setEditandoSala(null);
       carregarSalas(token);
     } catch (error) {
-      console.error("Erro ao adicionar sala", error);
+      console.error("Erro ao adicionar/editar sala", error);
     }
+  };
+
+  const deletarSala = async (id) => {
+    const token = localStorage.getItem("token");
+    try {
+      await axios.delete(`${API_URL}/sala/delete/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      carregarSalas(token);
+    } catch (error) {
+      console.error("Erro ao deletar sala", error);
+    }
+  };
+
+  const iniciarEdicao = (sala) => {
+    setNovaSala(sala.name);
+    setNovaCapacidade(sala.capacidade);
+    setEditandoSala(sala);
+  };
+
+  const cancelarEdicao = () => {
+    setNovaSala("");
+    setNovaCapacidade("");
+    setEditandoSala(null);
   };
 
   if (!logado) {
@@ -63,8 +98,8 @@ export default function Salas() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-10">
-      <h1 className="text-3xl font-bold mb-6">Sistema de Ensalamento</h1>
+    <div className="min-h-screen flex flex-col items-center p-10">
+      <h1 className="text-2xl font-bold">Sistema de Ensalamento</h1>
 
       <button
         onClick={() => {
@@ -72,44 +107,64 @@ export default function Salas() {
           setLogado(false);
           setSalas([]);
         }}
-        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        className="bg-red-500 text-white p-2 rounded mb-4"
       >
         Sair
       </button>
 
-      <div className="mt-8 flex gap-2 flex-wrap items-center justify-center">
+      <div className="mt-5 flex gap-2">
         <input
           type="text"
           placeholder="Nome da sala"
           value={novaSala}
           onChange={(e) => setNovaSala(e.target.value)}
-          className="border p-2 rounded w-64"
+          className="border p-2 rounded"
         />
         <input
           type="number"
-          min="0"
           placeholder="Capacidade"
-          value={capacidade}
-          onChange={(e) => setCapacidade(e.target.value)}
-          className="border p-2 rounded w-32"
+          value={novaCapacidade}
+          onChange={(e) => setNovaCapacidade(e.target.value)}
+          className="border p-2 rounded"
         />
         <button
-          onClick={adicionarSala}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          onClick={adicionarOuEditarSala}
+          className="bg-blue-500 text-white p-2 rounded"
         >
-          Adicionar Sala
+          {editandoSala ? "Salvar Edição" : "Adicionar Sala"}
         </button>
+        {editandoSala && (
+          <button
+            onClick={cancelarEdicao}
+            className="bg-gray-400 text-white p-2 rounded"
+          >
+            Cancelar
+          </button>
+        )}
       </div>
 
-      <ul className="mt-8 w-full max-w-2xl space-y-4">
+      <ul className="mt-5 max-w-xl w-full">
         {salas.map((sala) => (
           <li
             key={sala.id}
-            className="bg-white border rounded-lg shadow-sm p-4 flex justify-between items-center"
+            className="border p-2 my-2 rounded shadow-sm bg-white flex justify-between items-center"
           >
             <div>
-              <p className="text-xl font-semibold text-gray-800">{sala.name}</p>
-              <p className="text-sm text-gray-500">Capacidade: {sala.capacidade}</p>
+              <strong>{sala.name}</strong> — Capacidade: {sala.capacidade}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => iniciarEdicao(sala)}
+                className="bg-yellow-500 text-white px-3 py-1 rounded"
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => deletarSala(sala.id)}
+                className="bg-red-600 text-white px-3 py-1 rounded"
+              >
+                Excluir
+              </button>
             </div>
           </li>
         ))}
